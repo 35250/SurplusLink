@@ -4,7 +4,7 @@
 
 ## Live Demo
 
-**Frontend:** `https://main.dq9gygdl6mi1f.amplifyapp.com`
+**Live Demo:** [SurplusLink](https://main.dq9gygdl6mi1f.amplifyapp.com)
 
 **Region:** AWS `ap-south-1`
 
