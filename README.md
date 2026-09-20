@@ -4,7 +4,8 @@
 
 ## Live Demo
 
-**Live Demo:** [SurplusLink](https://main.dq9gygdl6mi1f.amplifyapp.com)
+**Live URL:** [SurplusLink](https://main.dq9gygdl6mi1f.amplifyapp.com)
+**Demo Video:** [Demo](https://www.youtube.com/watch?v=Xj7XS89Cxb4&feature=youtu.be)
 
 **Region:** AWS `ap-south-1`
 
