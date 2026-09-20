@@ -1,0 +1,339 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+
+  # --------------------------------------------------
+  # DynamoDB Tables
+  # --------------------------------------------------
+
+  SurplusLinkTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: SurplusLink
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: surplusId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: surplusId
+          KeyType: HASH
+
+
+  ReservationsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Reservations
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: reservationId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: reservationId
+          KeyType: HASH
+
+  # --------------------------------------------------
+  # Cognito Authentication
+  # --------------------------------------------------
+
+  SurplusLinkUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: SurplusLinkUsers
+
+      UsernameAttributes:
+        - email
+
+      AutoVerifiedAttributes:
+        - email
+
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+
+      Schema:
+        - Name: role
+          AttributeDataType: String
+          Mutable: false
+          Required: false
+          StringAttributeConstraints:
+            MinLength: "1"
+            MaxLength: "20"
+
+        - Name: providerName
+          AttributeDataType: String
+          Mutable: true
+          Required: false
+          StringAttributeConstraints:
+            MinLength: "2"
+            MaxLength: "100"
+
+      LambdaConfig:
+        PostConfirmation: !GetAtt AssignUserRoleFunction.Arn
+
+
+  # --------------------------------------------------
+  # Cognito Groups
+  # --------------------------------------------------
+
+  ProviderGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: PROVIDER
+      UserPoolId: !Ref SurplusLinkUserPool
+
+
+  RecipientGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: RECIPIENT
+      UserPoolId: !Ref SurplusLinkUserPool
+
+
+  # --------------------------------------------------
+  # Cognito App Client
+  # --------------------------------------------------
+
+  SurplusLinkUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref SurplusLinkUserPool
+
+      ClientName: SurplusLinkWebClient
+
+      GenerateSecret: false
+
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+
+      PreventUserExistenceErrors: ENABLED
+
+      ReadAttributes:
+        - email
+        - custom:role
+        - custom:providerName
+
+      WriteAttributes:
+        - email
+        - custom:role
+        - custom:providerName
+
+  # --------------------------------------------------
+  # Cognito Role Assignment Lambda
+  # --------------------------------------------------
+
+  AssignUserRoleFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src/handlers/assignUserRole.handler
+      Runtime: nodejs24.x
+      Environment:
+        Variables:
+          NOTIFICATION_TOPIC_ARN: !Ref SurplusNotificationTopic
+
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminAddUserToGroup
+              Resource: "*"
+
+            - Effect: Allow
+              Action:
+                - sns:Subscribe
+              Resource: !Ref SurplusNotificationTopic
+
+  AssignUserRoleLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AssignUserRoleFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt SurplusLinkUserPool.Arn
+
+  # --------------------------------------------------
+  # SNS Notifications
+  # --------------------------------------------------
+
+  SurplusNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: SurplusLinkNotifications
+
+  # --------------------------------------------------
+  # Lambda Functions
+  # --------------------------------------------------
+
+  SurplusLinkApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      
+      Cors:
+        AllowOrigin: "'*'"
+        AllowMethods: "'GET, POST, OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+
+      Auth:
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt SurplusLinkUserPool.Arn
+
+  CreateSurplusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src/handlers/createSurplus.handler
+      Runtime: nodejs24.x
+
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: SurplusLink
+
+      Events:
+        CreateSurplus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SurplusLinkApi
+            Path: /surplus
+            Method: POST
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+
+  GetSurplusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src/handlers/getSurplus.handler
+      Runtime: nodejs24.x
+
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: SurplusLink
+
+      Events:
+        GetSurplus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SurplusLinkApi
+            Path: /surplus
+            Method: GET
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+
+  ReserveSurplusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src/handlers/reserveSurplus.handler
+      Runtime: nodejs24.x
+      Environment:
+        Variables:
+          NOTIFICATION_TOPIC_ARN: !Ref SurplusNotificationTopic
+
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: SurplusLink
+        - DynamoDBCrudPolicy:
+            TableName: Reservations
+        - SNSPublishMessagePolicy:
+            TopicName: SurplusLinkNotifications
+
+      Events:
+        ReserveSurplus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SurplusLinkApi
+            Path: /surplus/{surplusId}/reserve
+            Method: POST
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+
+  GetMyReservationsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src/handlers/getMyReservations.handler
+      Runtime: nodejs24.x
+
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: Reservations
+
+      Events:
+        GetMyReservations:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SurplusLinkApi
+            Path: /my-reservations
+            Method: GET
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+
+  GetMySurplusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src/handlers/getMySurplus.handler
+      Runtime: nodejs24.x
+
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: SurplusLink
+
+      Events:
+        GetMySurplus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SurplusLinkApi
+            Path: /my-surplus
+            Method: GET
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  # --------------------------------------------------
+  # Surplus Expiration
+  # --------------------------------------------------
+
+  ExpireSurplusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src/handlers/expireSurplus.handler
+      Runtime: nodejs24.x
+
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: SurplusLink
+
+      Events:
+        ExpirationSchedule:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(5 minutes)
+            Name: SurplusLinkExpirationSchedule
+            FlexibleTimeWindow:
+              Mode: "OFF"
+
+Outputs:
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref SurplusLinkUserPool
+
+  UserPoolClientId:
+    Description: Cognito App Client ID
+    Value: !Ref SurplusLinkUserPoolClient
+
+  ApiUrl:
+    Description: SurplusLink API Gateway endpoint
+    Value: !Sub "https://${SurplusLinkApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"

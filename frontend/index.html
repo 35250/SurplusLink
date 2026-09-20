@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SurplusLink</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>SurplusLink</h1>
+        <p>Connect surplus food with people who need it.</p>
+    </header>
+
+    <main>
+
+        <section id="auth-section">
+
+            <div class="tabs">
+                <button id="login-tab" onclick="showLogin()">Login</button>
+                <button id="signup-tab" onclick="showSignup()">Sign Up</button>
+            </div>
+
+            <!-- LOGIN -->
+            <form id="login-form">
+                <h2>Login</h2>
+
+                <input
+                    type="email"
+                    id="login-email"
+                    placeholder="Email"
+                    required
+                >
+                
+                <div class="password-field">
+                    <input
+                        type="password"
+                        id="login-password"
+                        placeholder="Password"
+                        required
+                    >
+                    <button
+                        type="button"
+                        onclick="togglePassword('login-password', this)"
+                    >
+                        Show
+                    </button>
+                </div>
+
+                <button type="submit">Login</button>
+            </form>
+
+            <!-- SIGNUP -->
+            <form id="signup-form" class="hidden">
+                <h2>Create Account</h2>
+
+                <input
+                    type="email"
+                    id="signup-email"
+                    placeholder="Email"
+                    required
+                >
+
+                <div class="password-field">
+                    <input
+                        type="password"
+                        id="signup-password"
+                        placeholder="Password"
+                        required
+                    >
+                    <button
+                        type="button"
+                        onclick="togglePassword('signup-password', this)"
+                    >
+                        Show
+                    </button>
+                </div>
+
+                <select id="signup-role" required onchange="toggleProviderName()">
+                    <option value="">Select role</option>
+                    <option value="PROVIDER">Provider</option>
+                    <option value="RECIPIENT">Recipient</option>
+                </select>
+
+                <input
+                    type="text"
+                    id="provider-name"
+                    placeholder="Provider / Organization / Occasion name"
+                    class="hidden"
+                >
+
+                <button type="submit">Create Account</button>
+            </form>
+
+            <!-- CONFIRMATION -->
+            <form id="confirm-form" class="hidden">
+                <h2>Confirm Email</h2>
+
+                <p>
+                    Enter the confirmation code sent to your email.
+                </p>
+
+                <input
+                    type="text"
+                    id="confirmation-code"
+                    placeholder="Confirmation code"
+                    required
+                >
+
+                <button type="submit">Confirm Account</button>
+            </form>
+
+            <p id="auth-message"></p>
+
+        </section>
+
+        <!-- PROVIDER DASHBOARD -->
+        <section id="provider-dashboard" class="hidden">
+            <div class="notification-banner">
+                📧 <strong>Enable reservation notifications:</strong>
+                We sent a notification-subscription email to your registered email.
+                Click <strong>Confirm subscription</strong> in that email
+                (also check Spam/Junk) to receive notifications when a recipient
+                reserves your surplus (Ignore if already done).
+            </div>
+
+            <div class="dashboard-header">
+                <h2>Provider Dashboard</h2>
+                <button onclick="logout()">Logout</button>
+            </div>
+
+            <div class="card">
+                <h3>Create Surplus</h3>
+
+                <form id="create-surplus-form">
+
+                    <select id="food-type" required>
+                        <option value="">Select food type</option>
+                        <option value="VEG">Veg</option>
+                        <option value="NON_VEG">Non-Veg</option>
+                        <option value="BAKERY_DESSERTS">Bakery / Desserts</option>
+                        <option value="BEVERAGES">Beverages</option>
+                        <option value="PACKAGED_FOOD">Packaged Food</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+
+                    <input
+                        type="number"
+                        id="quantity"
+                        min="1"
+                        max="10000"
+                        placeholder="Quantity"
+                        required
+                    >
+
+                    <input
+                        type="text"
+                        id="pickup-address"
+                        placeholder="Pickup address"
+                        required
+                    >
+
+                    <input
+                        type="text"
+                        id="contact-number"
+                        placeholder="Contact number"
+                        required
+                    >
+
+                    <label for="expires-at">Expires at</label>
+                    <input
+                        type="datetime-local"
+                        id="expires-at"
+                        required
+                    >
+
+                    <button type="submit">Create Surplus</button>
+
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>My Surplus</h3>
+                <button onclick="loadMySurplus()">Refresh</button>
+                <div id="my-surplus-list"></div>
+            </div>
+        </section>
+
+        <!-- RECIPIENT DASHBOARD -->
+        <section id="recipient-dashboard" class="hidden">
+            <div class="dashboard-header">
+                <h2>Recipient Dashboard</h2>
+                <button onclick="logout()">Logout</button>
+            </div>
+
+            <div class="card">
+                <h3>Available Surplus</h3>
+                <button onclick="loadAvailableSurplus()">Refresh</button>
+                <div id="available-surplus-list"></div>
+            </div>
+
+            <div class="card">
+                <h3>My Reservations</h3>
+                <button onclick="loadMyReservations()">Refresh</button>
+                <div id="my-reservations-list"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

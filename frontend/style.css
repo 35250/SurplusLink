@@ -1,0 +1,123 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    color: #222;
+}
+
+header {
+    background: #1f2937;
+    color: white;
+    padding: 25px;
+    text-align: center;
+}
+
+header h1 {
+    margin-bottom: 8px;
+}
+
+main {
+    width: min(900px, 92%);
+    margin: 30px auto;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+input,
+select,
+button {
+    padding: 11px;
+    font-size: 15px;
+}
+
+button {
+    cursor: pointer;
+    border: none;
+    background: #1f2937;
+    color: white;
+    border-radius: 5px;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+.tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tabs button {
+    flex: 1;
+}
+
+.card,
+#auth-section {
+    background: white;
+    padding: 25px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.card h3 {
+    margin-bottom: 15px;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.hidden {
+    display: none;
+}
+
+.notification-banner {
+    background: #fff3cd;
+    border: 1px solid #ffe69c;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    line-height: 1.5;
+}
+
+.item {
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-top: 12px;
+    border-radius: 6px;
+}
+
+.item button {
+    margin-top: 10px;
+}
+
+.password-field {
+    display: flex;
+    gap: 8px;
+}
+
+.password-field input {
+    flex: 1;
+}
+
+.password-field button {
+    width: 70px;
+}
+
+#auth-message {
+    margin-top: 15px;
+}
